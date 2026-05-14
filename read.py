@@ -134,6 +134,9 @@ class StackDataset(Dataset):
                 "root_idx": torch.tensor([root_idx]).long(), # (1,)
                 "bass_idx": torch.tensor([bass_idx]).long(), # (1,)
                 "chord_idx": torch.tensor([chord_idx]).long(), # (1,)
+                
+                "root_name": root_name,
+                "chord_name": quality_name
             }
 
         audio = torch.tensor(audio.T)
