@@ -103,6 +103,7 @@ class StackDataset(Dataset):
             target = {
                 "symbol":symbol,
                 "exist": torch.tensor([exist]), # (1,)
+                "midi": "N",
             }
         else:
             assert len(midis) > 0
