@@ -19,9 +19,12 @@ CHORDNAMES = ["maj", "min", "dom", "dim", "aug", "N"]
 duration_len = int(duration * sr)
 
 class StackDataset(Dataset):
-    def __init__(self, sr):
+    def __init__(self, sr, min_midi, max_midi):
         super().__init__()
         self.sr = sr
+        self.min_midi = min_midi
+        self.max_midi = max_midi
+        self.P = max_midi - min_midi + 1
         
         meta_file = os.path.join(data_dir, "meta.csv")
         metas = []
@@ -81,7 +84,13 @@ class StackDataset(Dataset):
             labels = json.load(f)
 
         midis = labels['midi']
-        midis = [m + shift for m in midis]
+        # 过滤掉太低的
+        midis_shift = []
+        for m in midis:
+            m2 = m + shift
+            if self.min_midi <= m2 <= self.max_midi:
+                midis_shift.append(m2)
+        midis = midis_shift
         
         symbol = labels['text']
 
@@ -96,6 +105,7 @@ class StackDataset(Dataset):
                 "exist": torch.tensor([exist]), # (1,)
             }
         else:
+            assert len(midis) > 0
             if "/" not in symbol:
                 root_name, quality_name = symbol.split(":")
                 bass_name = root_name
@@ -118,14 +128,22 @@ class StackDataset(Dataset):
             
             pitch_cls = []
             pitch_vec = torch.zeros((12))
-            for midi in midis:
+            P = self.P
+            N = len(midis)
+            midi_vec = torch.zeros((N, P))
+            min_midi = self.min_midi
+            
+            for n, midi in enumerate(midis):
                 p = midi % 12
                 pitch_vec[p] = 1
+                midi_vec[n, midi - min_midi] = 1
                 if p not in pitch_cls:pitch_cls.append(p)
-
 
             target = {
                 "symbol":symbol,
+                
+                "midi":midis,
+                "midi_vec":midi_vec, # (P,)
                 
                 "pitch_cls": pitch_cls, # List
                 "pitch_vec": pitch_vec, # (12,)
