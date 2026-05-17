@@ -104,6 +104,7 @@ class StackDataset(Dataset):
                 "symbol":symbol,
                 "exist": torch.tensor([exist]), # (1,)
                 "midi": "N",
+                "midi_manyhot": torch.zeros(self.P)
             }
         else:
             assert len(midis) > 0
