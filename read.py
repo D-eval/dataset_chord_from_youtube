@@ -132,19 +132,22 @@ class StackDataset(Dataset):
             P = self.P
             N = len(midis)
             midi_vec = torch.zeros((N, P))
+            midi_manyhot = torch.zeros((P))
             min_midi = self.min_midi
             
             for n, midi in enumerate(midis):
                 p = midi % 12
                 pitch_vec[p] = 1
                 midi_vec[n, midi - min_midi] = 1
+                midi_manyhot[midi-min_midi] = 1
                 if p not in pitch_cls:pitch_cls.append(p)
 
             target = {
                 "symbol":symbol,
                 
                 "midi":midis,
-                "midi_vec":midi_vec, # (P,)
+                "midi_vec":midi_vec, # (N,P,)
+                "midi_manyhot":midi_manyhot, # (P,)
                 
                 "pitch_cls": pitch_cls, # List
                 "pitch_vec": pitch_vec, # (12,)
