@@ -120,6 +120,7 @@ function isValidChordText(raw) {
   if (text === 'N') return true; // 没有和弦
   if (text === 'M') return true; // 多个和弦
   if (text === 'S') return true; // 微分和弦
+  // if (text === '') return true; // 懒得标注，用于非symbol的任务，后期要通过规则自动获得symbol
   const re = /^(C|C#|D|D#|E|F|F#|G|G#|A|A#|B):(maj|min|dom|dim|aug|N)(?:\/(C|C#|D|D#|E|F|F#|G|G#|A|A#|B))?$/;
   return re.test(text);
 }
