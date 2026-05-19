@@ -6,6 +6,76 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+import random
+
+def sim_noise_label(
+    midis,
+    p_fifth=0.10,
+    p_octave=0.15,
+    p_add=0.10,
+    p_remove=0.10,
+):
+    """
+    模拟 AMT noisy label
+    
+    错误类型:
+    1. 五度泛音混淆
+    2. 八度混淆
+    3. 多标音符
+    4. 漏标音符
+    """
+
+    midis = list(midis)
+
+    if len(midis) == 0:
+        return midis
+
+    # ===== 五度泛音 =====
+    if random.random() < p_fifth:
+        m = random.choice(midis)
+
+        # 更像泛音误判：增加，而不是替换
+        shift = random.choice([7, -7])
+        m2 = m + shift
+
+        if 24 <= m2 <= 107:
+            midis.append(m2)
+
+    # ===== 八度混淆 =====
+    if random.random() < p_octave:
+        idx = random.randrange(len(midis))
+
+        shift = random.choice([12, -12])
+        m2 = midis[idx] + shift
+
+        if 24 <= m2 <= 107:
+            midis[idx] = m2
+
+    # ===== 漏标 =====
+    if random.random() < p_remove:
+        if len(midis) > 1:
+            idx = random.randrange(len(midis))
+            midis.pop(idx)
+
+    # ===== 多标 =====
+    if random.random() < p_add:
+        m = random.choice(midis)
+
+        candidate = []
+        for shift in [-12, -7, 7, 12]:
+            m2 = m + shift
+            if 24 <= m2 <= 107:
+                candidate.append(m2)
+
+        if len(candidate) > 0:
+            midis.append(random.choice(candidate))
+
+    # 去重排序
+    midis = sorted(list(set(midis)))
+
+    return midis
+
+
 current_file = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_file)
 
@@ -40,6 +110,14 @@ class StackDataset(Dataset):
         value_to_remove = []
         for temp_serial in all_idx:
             audio_filename = os.path.join(data_dir, "music", str(temp_serial)+".mp3")
+            
+            json_filename = os.path.join(data_dir, "json", str(temp_serial)+".json")
+            with open(json_filename,"r") as f:
+                labels = json.load(f)
+            symbol = labels['text']
+            if symbol in ["M", "S"]:
+                value_to_remove.append(temp_serial)
+                continue
             audio, sr = librosa.load(audio_filename, mono=False, sr=sr)
             audio = audio.T
             if audio.shape[0] != duration_len:
@@ -57,6 +135,8 @@ class StackDataset(Dataset):
                 self.samples.append(
                     (temp_serial, shift)
                 )
+
+        self.apply_label_noise = False
 
     def __len__(self):
         return len(self.samples)
@@ -91,6 +171,9 @@ class StackDataset(Dataset):
             if self.min_midi <= m2 <= self.max_midi:
                 midis_shift.append(m2)
         midis = midis_shift
+        
+        if self.apply_label_noise:
+            midis = sim_noise_label(midis)
         
         symbol = labels['text']
 
