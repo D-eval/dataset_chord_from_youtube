@@ -138,6 +138,16 @@ class StackDataset(Dataset):
 
         self.apply_label_noise = False
 
+    def divide_train_valid_set(self, divide=7, remainder=1):
+        self.train_samples = [sample for i, sample in enumerate(self.samples) if i % divide != remainder]
+        self.valid_samples = [sample for i, sample in enumerate(self.samples) if i % divide == remainder]
+
+    def train(self):
+        self.samples = self.train_samples
+        
+    def valid(self):
+        self.samples = self.valid_samples
+
     def __len__(self):
         return len(self.samples)
 
